@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+@theme {
+  --color-udaan-600: #c2410c;
+  --color-udaan-700: #9a3412;
+  --font-sans: "Inter", "Noto Sans Devanagari", system-ui, sans-serif;
+}
