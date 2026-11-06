@@ -29,9 +29,38 @@ import org.springframework.web.bind.annotation.RestController;
 class ProblemController {
 
     private final ProblemService problems;
+    private final ProblemLifecycleService lifecycle;
 
-    ProblemController(ProblemService problems) {
+    ProblemController(ProblemService problems, ProblemLifecycleService lifecycle) {
         this.problems = problems;
+        this.lifecycle = lifecycle;
+    }
+
+    record TransitionRequest(@NotNull ProblemStatus toStatus, @Size(max = 2000) String note,
+                             @Size(max = 4, message = "add up to 4 photos") List<UUID> evidenceMediaIds) {
+    }
+
+    record UpdateRequest(@NotBlank @Size(min = 5, max = 2000, message = "must be 5 to 2000 characters") String body,
+                         @Size(max = 4, message = "add up to 4 photos") List<UUID> mediaIds) {
+    }
+
+    record VoteRequest(@NotNull ResolutionVotes.Vote vote) {
+    }
+
+    @PostMapping("/api/v1/problems/{ref}/status-transitions")
+    ProblemView transition(@PathVariable String ref, @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody TransitionRequest r) {
+        return lifecycle.transition(ref, viewer(jwt), r.toStatus(), r.note(), r.evidenceMediaIds());
+    }
+
+    @PostMapping("/api/v1/problems/{ref}/updates")
+    @ResponseStatus(HttpStatus.CREATED)
+    ProblemView postUpdate(@PathVariable String ref, @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody UpdateRequest r) {
+        return lifecycle.postUpdate(ref, viewer(jwt), r.body(), r.mediaIds());
+    }
+
+    @PostMapping("/api/v1/problems/{ref}/resolution-votes")
+    ProblemView vote(@PathVariable String ref, @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody VoteRequest r) {
+        return lifecycle.vote(ref, viewer(jwt), r.vote());
     }
 
     /** Location fields. Coordinates are optional and limited to India's bounding box. */

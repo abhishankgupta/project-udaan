@@ -99,6 +99,8 @@ const detail = {
   viewerIsOwner: false,
   viewerSupports: false,
   viewerFollows: false,
+  permissions: { canPostUpdates: false, allowedTransitions: [] },
+  resolution: null,
   createdAt: '2026-11-07T10:00:00Z',
 }
 

@@ -53,11 +53,24 @@ export interface ProblemView {
   submittedBy: { id: string | null; displayName: string | null; anonymous: boolean }
   photos: Photo[]
   counts: { supporters: number; solutions: number; comments: number; followers: number }
-  timeline: { type: string; fromStatus: ProblemStatus | null; toStatus: ProblemStatus | null; body: string | null; at: string }[]
+  timeline: TimelineEntry[]
   viewerIsOwner: boolean
   viewerSupports: boolean
   viewerFollows: boolean
+  permissions: { canPostUpdates: boolean; allowedTransitions: ProblemStatus[] }
+  resolution: { confirms: number; disputes: number; viewerVote: 'CONFIRM' | 'DISPUTE' | null; votingOpen: boolean; votingClosesAt: string | null } | null
   createdAt: string
+}
+
+export interface TimelineEntry {
+  type: 'STATUS_CHANGE' | 'PROGRESS' | 'OFFICIAL_RESPONSE' | 'RESOLUTION_EVIDENCE'
+  fromStatus: ProblemStatus | null
+  toStatus: ProblemStatus | null
+  body: string | null
+  authorName: string | null
+  authorRole: 'OWNER' | 'ACCEPTED_PROPOSER' | 'COMMUNITY' | null
+  photos: Photo[]
+  at: string
 }
 
 export interface ProblemSummary {
@@ -186,4 +199,34 @@ export function useToggle(code: string, kind: 'support' | 'follow') {
       void queryClient.invalidateQueries({ queryKey: ['feed'] })
     },
   })
+}
+
+function useProblemMutation<TInput>(code: string, request: (input: TInput) => Promise<ProblemView>) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: request,
+    onSuccess: (problem) => {
+      queryClient.setQueryData(['problem', code], problem)
+      void queryClient.invalidateQueries({ queryKey: ['feed'] })
+      void queryClient.invalidateQueries({ queryKey: ['my-problems'] })
+    },
+  })
+}
+
+export function useTransition(code: string) {
+  return useProblemMutation(code, (input: { toStatus: ProblemStatus; note?: string; evidenceMediaIds?: string[] }) =>
+    apiRequest<ProblemView>(`/api/v1/problems/${encodeURIComponent(code)}/status-transitions`, { body: input, auth: true }),
+  )
+}
+
+export function usePostUpdate(code: string) {
+  return useProblemMutation(code, (input: { body: string; mediaIds: string[] }) =>
+    apiRequest<ProblemView>(`/api/v1/problems/${encodeURIComponent(code)}/updates`, { body: input, auth: true }),
+  )
+}
+
+export function useResolutionVote(code: string) {
+  return useProblemMutation(code, (vote: 'CONFIRM' | 'DISPUTE') =>
+    apiRequest<ProblemView>(`/api/v1/problems/${encodeURIComponent(code)}/resolution-votes`, { body: { vote }, auth: true }),
+  )
 }

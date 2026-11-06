@@ -105,6 +105,15 @@ class Problem {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(name = "accepted_solution_id")
+    private UUID acceptedSolutionId;
+
+    @Column(name = "accepted_proposer_id")
+    private UUID acceptedProposerId;
+
+    @Column(name = "resolved_at")
+    private Instant resolvedAt;
+
     @Version
     private long version;
 
@@ -155,6 +164,23 @@ class Problem {
     void changeStatus(ProblemStatus newStatus) {
         this.status = newStatus;
         this.updatedAt = Instant.now();
+        this.resolvedAt = newStatus == ProblemStatus.RESOLVED ? this.updatedAt : null;
+    }
+
+    void recordAcceptedSolution(UUID solutionId, UUID proposerId) {
+        this.acceptedSolutionId = solutionId;
+        this.acceptedProposerId = proposerId;
+    }
+
+    java.util.Set<ProblemLifecycle.Role> rolesOf(UUID userId) {
+        java.util.EnumSet<ProblemLifecycle.Role> roles = java.util.EnumSet.noneOf(ProblemLifecycle.Role.class);
+        if (userId != null && userId.equals(submitterId)) {
+            roles.add(ProblemLifecycle.Role.OWNER);
+        }
+        if (userId != null && userId.equals(acceptedProposerId)) {
+            roles.add(ProblemLifecycle.Role.ACCEPTED_PROPOSER);
+        }
+        return roles;
     }
 
     boolean isVisibleTo(UUID viewerId) {
@@ -189,6 +215,8 @@ class Problem {
     int getFollowerCount() { return followerCount; }
     Instant getCreatedAt() { return createdAt; }
     List<UUID> getMediaIds() { return List.copyOf(mediaIds); }
+    UUID getAcceptedProposerId() { return acceptedProposerId; }
+    Instant getResolvedAt() { return resolvedAt; }
 
     Set<AssistanceType> getAssistanceTypes() {
         EnumSet<AssistanceType> set = EnumSet.noneOf(AssistanceType.class);

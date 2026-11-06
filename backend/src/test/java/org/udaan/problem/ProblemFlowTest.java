@@ -93,7 +93,8 @@ class ProblemFlowTest {
         assertThat(asOwner.field("displayName")).isEqualTo("Hidden Person");
 
         Response asOther = api.get("/api/v1/problems/" + created.field("publicCode"));
-        assertThat(asOther.body()).doesNotContain("Hidden Person").contains("\"anonymous\":true");
+        assertThat(asOther.body()).as("not in submittedBy nor the timeline").doesNotContain("Hidden Person")
+                .contains("\"anonymous\":true").contains("Anonymous resident");
     }
 
     @Test

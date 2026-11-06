@@ -38,7 +38,7 @@ public class SecurityConfig {
                 .requestMatchers("/error").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/**").permitAll()
-                .requestMatchers("/api/v1/me", "/api/v1/me/**").authenticated()
+                .requestMatchers("/api/v1/me", "/api/v1/me/**", "/api/v1/notifications", "/api/v1/notifications/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/v1/**").permitAll()
                 .anyRequest().authenticated())
             .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(rolesConverter())));

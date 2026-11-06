@@ -34,8 +34,12 @@ const created = {
   submittedBy: { id: 'u1', displayName: 'Asha', anonymous: false },
   photos: [{ id: 'm1', url: '/api/v1/media/m1', width: 1600, height: 1200 }],
   counts: { supporters: 0, solutions: 0, comments: 0, followers: 0 },
-  timeline: [{ type: 'STATUS_CHANGE', fromStatus: 'SUBMITTED', toStatus: 'UNDER_REVIEW', body: 'Submitted for review', at: '2026-11-07T10:00:00Z' }],
+  timeline: [{ type: 'STATUS_CHANGE', fromStatus: 'SUBMITTED', toStatus: 'UNDER_REVIEW', body: 'Submitted for review', authorName: 'Asha', authorRole: 'OWNER', photos: [], at: '2026-11-07T10:00:00Z' }],
   viewerIsOwner: true,
+  viewerSupports: false,
+  viewerFollows: false,
+  permissions: { canPostUpdates: false, allowedTransitions: [] },
+  resolution: null,
   createdAt: '2026-11-07T10:00:00Z',
 }
 

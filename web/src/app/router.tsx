@@ -8,6 +8,7 @@ import { LoginPage } from '../pages/LoginPage'
 import { MyContributionsPage } from '../pages/MyContributionsPage'
 import { MyProblemsPage } from '../pages/MyProblemsPage'
 import { MyProfilePage } from '../pages/MyProfilePage'
+import { NotificationsPage } from '../pages/NotificationsPage'
 import { ProblemDetailPage } from '../pages/ProblemDetailPage'
 import { ProposeSolutionPage } from '../pages/ProposeSolutionPage'
 import { PublicProfilePage } from '../pages/PublicProfilePage'
@@ -32,6 +33,7 @@ export const routes = [
       { path: 'problems/:code/solutions/new', element: <RequireAuth><ProposeSolutionPage /></RequireAuth> },
       { path: 'me/problems', element: <RequireAuth><MyProblemsPage /></RequireAuth> },
       { path: 'me/contributions', element: <RequireAuth><MyContributionsPage /></RequireAuth> },
+      { path: 'notifications', element: <RequireAuth><NotificationsPage /></RequireAuth> },
       { path: 'solutions', element: <ExploreSolutionsPage /> },
       { path: 'solutions/:id', element: <SolutionDetailPage /> },
       { path: 'organizations', element: <ComingSoonPage title="Organizations" /> },

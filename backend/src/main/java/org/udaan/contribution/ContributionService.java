@@ -25,9 +25,11 @@ class ContributionService {
     private final ProblemFacade problems;
     private final SolutionFacade solutions;
     private final IdentityFacade identity;
+    private final org.springframework.context.ApplicationEventPublisher events;
 
     ContributionService(ContributionRepository contributions, ProblemFacade problems, SolutionFacade solutions,
-                        IdentityFacade identity) {
+                        IdentityFacade identity, org.springframework.context.ApplicationEventPublisher events) {
+        this.events = events;
         this.contributions = contributions;
         this.problems = problems;
         this.solutions = solutions;
@@ -52,6 +54,11 @@ class ContributionService {
         Contribution c = existing.orElseGet(() -> Contribution.offer(problem.id(), solutionId, userId));
         c.update(types, message, shareContact);
         contributions.save(c);
+        if (existing.isEmpty()) {
+            events.publishEvent(new org.udaan.contribution.api.HelpOffered(problem.id(), problem.publicCode(), problem.title(),
+                    problem.submitterId(), solution == null ? null : solution.proposerId(), userId,
+                    types.stream().map(Enum::name).collect(java.util.stream.Collectors.toSet())));
+        }
         return view(c, problem, solution, userId, new HashMap<>());
     }
 

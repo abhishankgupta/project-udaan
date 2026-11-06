@@ -17,13 +17,16 @@ class ProblemFacadeImpl implements ProblemFacade {
             ProblemStatus.OPEN_FOR_SOLUTIONS, ProblemStatus.SOLUTION_PROPOSED, ProblemStatus.SOLUTION_ACCEPTED);
 
     private final ProblemRepository problems;
-    private final ProblemUpdateRepository updates;
+    private final ProblemTimeline timeline;
     private final ProblemCounters counters;
+    private final org.springframework.jdbc.core.simple.JdbcClient jdbc;
 
-    ProblemFacadeImpl(ProblemRepository problems, ProblemUpdateRepository updates, ProblemCounters counters) {
+    ProblemFacadeImpl(ProblemRepository problems, ProblemTimeline timeline, ProblemCounters counters,
+                      org.springframework.jdbc.core.simple.JdbcClient jdbc) {
         this.problems = problems;
-        this.updates = updates;
+        this.timeline = timeline;
         this.counters = counters;
+        this.jdbc = jdbc;
     }
 
     @Override
@@ -51,7 +54,7 @@ class ProblemFacadeImpl implements ProblemFacade {
         counters.adjust(problemId, ProblemCounters.Counter.SOLUTIONS, 1);
         Problem problem = problems.findById(problemId).orElseThrow();
         if (problem.getStatus() == ProblemStatus.OPEN_FOR_SOLUTIONS || problem.getStatus() == ProblemStatus.VERIFIED) {
-            move(problem, ProblemStatus.SOLUTION_PROPOSED, null, "A solution has been proposed");
+            timeline.move(problem, ProblemStatus.SOLUTION_PROPOSED, null, "A solution has been proposed");
         }
     }
 
@@ -63,21 +66,29 @@ class ProblemFacadeImpl implements ProblemFacade {
 
     @Override
     @Transactional
-    public void solutionAccepted(UUID problemId, UUID ownerId, String solutionTitle) {
+    public void solutionAccepted(UUID problemId, UUID ownerId, UUID solutionId, UUID proposerId, String solutionTitle) {
         Problem problem = problems.findById(problemId).orElseThrow();
-        move(problem, ProblemStatus.SOLUTION_ACCEPTED, ownerId, "The problem owner accepted the solution: " + solutionTitle);
+        problem.recordAcceptedSolution(solutionId, proposerId);
+        timeline.move(problem, ProblemStatus.SOLUTION_ACCEPTED, ownerId, "OWNER",
+                "The problem owner accepted the solution: " + solutionTitle, java.util.List.of());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<UUID> audience(UUID problemId) {
+        return new java.util.HashSet<>(jdbc.sql("""
+                SELECT submitter_id AS u FROM problems WHERE id = :p
+                UNION SELECT accepted_proposer_id FROM problems WHERE id = :p AND accepted_proposer_id IS NOT NULL
+                UNION SELECT user_id FROM problem_follows WHERE problem_id = :p
+                UNION SELECT user_id FROM problem_supports WHERE problem_id = :p
+                LIMIT 5000
+                """).param("p", problemId).query(UUID.class).list());
     }
 
     @Override
     @Transactional
     public void commentCountChanged(UUID problemId, int delta) {
         counters.adjust(problemId, ProblemCounters.Counter.COMMENTS, delta);
-    }
-
-    private void move(Problem problem, ProblemStatus to, UUID actorId, String note) {
-        ProblemStatus from = problem.getStatus();
-        problem.changeStatus(to);
-        updates.save(ProblemUpdate.statusChange(problem.getId(), actorId, from, to, note));
     }
 
     private static ProblemRef toRef(Problem p) {

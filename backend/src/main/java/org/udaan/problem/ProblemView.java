@@ -28,7 +28,17 @@ record ProblemView(
         boolean viewerIsOwner,
         boolean viewerSupports,
         boolean viewerFollows,
+        Permissions permissions,
+        Resolution resolution,
         Instant createdAt) {
+
+    /** What the current viewer may do: post progress updates, and which statuses they may move to. */
+    record Permissions(boolean canPostUpdates, java.util.Set<ProblemStatus> allowedTransitions) {
+    }
+
+    /** Community confirmation of a resolution; present only while the problem is RESOLVED. */
+    record Resolution(int confirms, int disputes, String viewerVote, boolean votingOpen, Instant votingClosesAt) {
+    }
 
     record Category(UUID id, String code, String nameEn, String nameHi) {
     }
@@ -45,6 +55,6 @@ record ProblemView(
     }
 
     record TimelineEntry(ProblemUpdateType type, ProblemStatus fromStatus, ProblemStatus toStatus, String body,
-                         Instant at) {
+                         String authorName, String authorRole, List<MediaRef> photos, Instant at) {
     }
 }

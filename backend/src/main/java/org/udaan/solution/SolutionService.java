@@ -31,8 +31,11 @@ class SolutionService implements SolutionFacade {
     private final ProblemFacade problems;
     private final IdentityFacade identity;
     private final JdbcClient jdbc;
+    private final org.springframework.context.ApplicationEventPublisher events;
 
-    SolutionService(SolutionRepository solutions, ProblemFacade problems, IdentityFacade identity, JdbcClient jdbc) {
+    SolutionService(SolutionRepository solutions, ProblemFacade problems, IdentityFacade identity, JdbcClient jdbc,
+                    org.springframework.context.ApplicationEventPublisher events) {
+        this.events = events;
         this.solutions = solutions;
         this.problems = problems;
         this.identity = identity;
@@ -55,6 +58,8 @@ class SolutionService implements SolutionFacade {
         }
         Solution solution = solutions.save(Solution.propose(problem.id(), proposerId, draft));
         problems.solutionProposed(problem.id());
+        events.publishEvent(new org.udaan.solution.api.SolutionProposed(problem.id(), problem.publicCode(), problem.title(),
+                problem.submitterId(), solution.getId(), solution.getTitle(), proposerId));
         return view(solution, problems.find(problem.id()).orElse(problem), proposerId);
     }
 
@@ -109,7 +114,9 @@ class SolutionService implements SolutionFacade {
         } catch (DataIntegrityViolationException e) {
             throw new ApiException(HttpStatus.CONFLICT, "SOLUTION_ALREADY_ACCEPTED", "A solution has already been accepted for this problem");
         }
-        problems.solutionAccepted(problem.id(), actorId, solution.getTitle());
+        problems.solutionAccepted(problem.id(), actorId, solution.getId(), solution.getProposerId(), solution.getTitle());
+        events.publishEvent(new org.udaan.solution.api.SolutionAccepted(problem.id(), problem.publicCode(), problem.title(),
+                solution.getId(), solution.getTitle(), solution.getProposerId(), actorId));
         return view(solution, problems.find(problem.id()).orElse(problem), actorId);
     }
 
