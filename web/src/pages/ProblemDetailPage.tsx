@@ -1,8 +1,13 @@
-import { Link, useLocation, useParams } from 'react-router'
+import { Link, useLocation, useNavigate, useParams } from 'react-router'
+import { useRequireSignIn } from '../features/auth/useRequireSignIn'
 import { FormError } from '../components/shared/Form'
+import { HelpOffers } from '../features/contributions/HelpOffers'
+import { Discussion } from '../features/discussion/Discussion'
 import { ProblemActions } from '../features/problems/ProblemActions'
 import { useProblem } from '../features/problems/problemApi'
 import { StatusBadge } from '../features/problems/StatusBadge'
+import { SolutionCard } from '../features/solutions/SolutionCard'
+import { useProblemSolutions } from '../features/solutions/solutionApi'
 import { ApiError, apiUrl, errorMessage } from '../lib/api'
 import { assistanceLabels, statusLabels, urgencyLabels } from '../lib/labels'
 
@@ -145,11 +150,51 @@ export function ProblemDetailPage() {
         </ol>
       </section>
 
+      {p.isPublic && <ProblemCollaboration code={p.publicCode} acceptsSolutions={!['RESOLVED', 'CLOSED', 'IN_PROGRESS'].includes(p.status)} />}
+    </article>
+  )
+}
+
+/** Solutions, offers of help and discussion: the parts that only exist once a problem is public. */
+function ProblemCollaboration({ code, acceptsSolutions }: { code: string; acceptsSolutions: boolean }) {
+  const solutions = useProblemSolutions(code)
+  const requireSignIn = useRequireSignIn()
+  const navigate = useNavigate()
+
+  return (
+    <>
+      <section className="space-y-3" aria-labelledby="solutions-heading">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="solutions-heading" className="text-lg font-semibold">
+            Proposed solutions {solutions.data && solutions.data.length > 0 && `(${solutions.data.length})`}
+          </h2>
+          {acceptsSolutions && (
+            <button
+              type="button"
+              className="rounded-md bg-udaan-600 px-3 py-2 text-sm font-semibold text-white hover:bg-udaan-700"
+              onClick={() => requireSignIn() && navigate(`/problems/${code}/solutions/new`)}
+            >
+              Propose a solution
+            </button>
+          )}
+        </div>
+        {solutions.isError && <FormError message={errorMessage(solutions.error)} />}
+        {solutions.data?.length === 0 && <p className="text-sm text-stone-600">No solutions yet. Have an idea? Propose it.</p>}
+        <ul className="space-y-3">
+          {solutions.data?.map((s) => (
+            <li key={s.id}>
+              <SolutionCard solution={s} />
+            </li>
+          ))}
+        </ul>
+      </section>
+      <HelpOffers code={code} solutions={solutions.data?.filter((s) => s.status !== 'WITHDRAWN') ?? []} />
+      <Discussion target={{ kind: 'problem', code }} />
       <p className="text-sm">
-        <Link to="/me/problems" className="text-udaan-700 underline">
-          See all your problems
+        <Link to="/me/contributions" className="text-udaan-700 underline">
+          See all your contributions
         </Link>
       </p>
-    </article>
+    </>
   )
 }

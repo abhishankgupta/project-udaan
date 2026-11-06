@@ -17,6 +17,23 @@ class ProblemCounters {
         this.jdbc = jdbc;
     }
 
+    /** Counters other modules may move. Column names are fixed here, never taken from input. */
+    enum Counter {
+        SOLUTIONS("solution_count"),
+        COMMENTS("comment_count");
+
+        final String column;
+
+        Counter(String column) {
+            this.column = column;
+        }
+    }
+
+    void adjust(UUID problemId, Counter counter, int delta) {
+        jdbc.sql("UPDATE problems SET " + counter.column + " = GREATEST(0, " + counter.column + " + :d) WHERE id = :p")
+                .param("d", delta).param("p", problemId).update();
+    }
+
     int addSupport(UUID problemId, UUID userId) {
         return toggle("problem_supports", "support_count", problemId, userId, true);
     }
