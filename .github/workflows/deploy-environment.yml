@@ -95,7 +95,9 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: web
-          command: deploy --name ${{ vars.CF_WORKER_NAME }} --message "${{ github.sha }}"
+          # Pin Wrangler 4 (the action's default is older and lacks static-assets SPA support).
+          wranglerVersion: "4.158.0"
+          command: deploy --name ${{ vars.CF_WORKER_NAME }}
 
       - name: Smoke test
         env:
