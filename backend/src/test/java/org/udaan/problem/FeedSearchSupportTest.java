@@ -99,8 +99,11 @@ class FeedSearchSupportTest {
         Response paged = api.get("/api/v1/problems?q=" + tag + "&size=1");
         assertThat(paged.body()).contains("\"hasMore\":true");
         Response trending = api.get("/api/v1/problems?q=" + tag + "&sort=TRENDING");
-        assertThat(trending.status()).isEqualTo(200);
-        assertThat(api.get("/api/v1/problems?sort=nonsense").status()).isEqualTo(400);
+        assertThat(trending.status()).as(trending.toString()).isEqualTo(200);
+        assertThat(trending.body()).contains(lights).contains(garbage);
+        Response badSort = api.get("/api/v1/problems?sort=nonsense");
+        assertThat(badSort.status()).as(badSort.toString()).isEqualTo(400);
+        assertThat(badSort.field("code")).isEqualTo("INVALID_PARAMETER");
     }
 
     @Test
