@@ -11,6 +11,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 /**
  * Turns errors into RFC 7807 problem+json bodies with a stable {@code code} field,
@@ -24,6 +25,9 @@ public class ApiExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(ex.status(), ex.getMessage());
         problem.setType(URI.create("https://udaan.org/errors/" + ex.code().toLowerCase(Locale.ROOT).replace('_', '-')));
         problem.setProperty("code", ex.code());
+        if (ex instanceof FieldException fe) {
+            problem.setProperty("fieldErrors", List.of(Map.of("field", fe.field(), "message", fe.getMessage())));
+        }
         return ResponseEntity.status(ex.status()).body(problem);
     }
 
@@ -44,6 +48,14 @@ public class ApiExceptionHandler {
                 .map(e -> Map.of("field", e.getField(), "message", String.valueOf(e.getDefaultMessage())))
                 .toList();
         problem.setProperty("fieldErrors", fieldErrors);
+        return problem;
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ProblemDetail handleTooLarge(MaxUploadSizeExceededException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.PAYLOAD_TOO_LARGE, "Photos must be under 10 MB");
+        problem.setType(URI.create("https://udaan.org/errors/image-too-large"));
+        problem.setProperty("code", "IMAGE_TOO_LARGE");
         return problem;
     }
 

@@ -26,7 +26,7 @@ ENV UDAAN_VERSION=${UDAAN_VERSION}
 
 # Tuned for Render's free instance (512 MB RAM, 0.1 CPU): small heap, serial GC,
 # and C1-only JIT for a faster cold start after the service spins down.
-ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=65 -XX:+UseSerialGC -Xss512k -XX:TieredStopAtLevel=1 -XX:+ExitOnOutOfMemoryError"
+ENV JAVA_TOOL_OPTIONS="-Djava.awt.headless=true -XX:MaxRAMPercentage=65 -XX:+UseSerialGC -Xss512k -XX:TieredStopAtLevel=1 -XX:+ExitOnOutOfMemoryError"
 
 EXPOSE 8080
 ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]

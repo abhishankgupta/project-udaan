@@ -28,6 +28,9 @@ function AccountMenu() {
   }
   return (
     <div className="flex items-center gap-3 text-sm">
+      <Link to="/me/problems" className="text-stone-700 hover:text-stone-900">
+        My problems
+      </Link>
       <Link to="/me" className="font-medium text-stone-800 hover:text-udaan-700">
         {user.displayName}
       </Link>
