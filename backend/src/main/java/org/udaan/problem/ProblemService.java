@@ -33,12 +33,17 @@ class ProblemService {
     private final UdaanProperties udaan;
     private final ProblemFeedRepository feed;
     private final ProblemCounters counters;
+    private final ProblemTimeline timeline;
+    private final ResolutionVotes votes;
 
     ProblemService(ProblemRepository problems, ProblemUpdateRepository updates, TaxonomyFacade taxonomy,
                    GeoFacade geo, MediaFacade media, IdentityFacade identity, ProblemProperties properties,
-                   UdaanProperties udaan, ProblemFeedRepository feed, ProblemCounters counters) {
+                   UdaanProperties udaan, ProblemFeedRepository feed, ProblemCounters counters,
+                   ProblemTimeline timeline, ResolutionVotes votes) {
         this.feed = feed;
         this.counters = counters;
+        this.timeline = timeline;
+        this.votes = votes;
         this.problems = problems;
         this.updates = updates;
         this.taxonomy = taxonomy;
@@ -149,9 +154,7 @@ class ProblemService {
     }
 
     private void moveTo(Problem problem, ProblemStatus to, UUID actorId, String note) {
-        ProblemStatus from = problem.getStatus();
-        problem.changeStatus(to);
-        updates.save(ProblemUpdate.statusChange(problem.getId(), actorId, from, to, note));
+        timeline.move(problem, to, actorId, note);
     }
 
     private ProblemView view(Problem p, UUID viewerId) {
@@ -168,9 +171,21 @@ class ProblemService {
             submitter = new ProblemView.Submitter(p.getSubmitterId(), name, p.isAnonymous());
         }
 
-        List<ProblemView.TimelineEntry> timeline = updates.findByProblemIdOrderByCreatedAtAsc(p.getId()).stream()
-                .map(u -> new ProblemView.TimelineEntry(u.getType(), u.getFromStatus(), u.getToStatus(), u.getBody(), u.getCreatedAt()))
+        java.util.Map<UUID, String> names = new java.util.HashMap<>();
+        List<ProblemView.TimelineEntry> timelineEntries = updates.findByProblemIdOrderByCreatedAtAsc(p.getId()).stream()
+                .map(u -> new ProblemView.TimelineEntry(u.getType(), u.getFromStatus(), u.getToStatus(), u.getBody(),
+                        u.getAuthorId() == null ? null : names.computeIfAbsent(u.getAuthorId(),
+                                id -> identity.findUser(id).map(x -> x.displayName()).orElse("Udaan member")),
+                        u.getAuthorRole(), media.describe(u.getMediaIds()), u.getCreatedAt()))
                 .toList();
+
+        java.util.Set<ProblemLifecycle.Role> roles = p.rolesOf(viewerId);
+        ProblemView.Permissions permissions = new ProblemView.Permissions(
+                !roles.isEmpty() && ProblemLifecycle.acceptsUpdates(p.getStatus()),
+                ProblemLifecycle.allowed(p.getStatus(), roles));
+        ProblemView.Resolution resolution = p.getStatus() == ProblemStatus.RESOLVED
+                ? votes.summary(p, viewerId)
+                : null;
 
         return new ProblemView(p.getId(), p.getPublicCode(), p.getTitle(), p.getDescription(),
                 new ProblemView.Category(category.id(), category.code(), category.nameEn(), category.nameHi()),
@@ -183,7 +198,8 @@ class ProblemService {
                 p.getAssistanceTypes(), p.getStatus(), p.getStatus().isPublic(), submitter,
                 media.describe(p.getMediaIds()),
                 new ProblemView.Counts(p.getSupportCount(), p.getSolutionCount(), p.getCommentCount(), p.getFollowerCount()),
-                timeline, owner, feed.supports(p.getId(), viewerId), feed.follows(p.getId(), viewerId), p.getCreatedAt());
+                timelineEntries, owner, feed.supports(p.getId(), viewerId), feed.follows(p.getId(), viewerId),
+                permissions, resolution, p.getCreatedAt());
     }
 
     private ProblemSummary summary(Problem p) {

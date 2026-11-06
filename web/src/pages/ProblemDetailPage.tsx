@@ -3,7 +3,9 @@ import { useRequireSignIn } from '../features/auth/useRequireSignIn'
 import { FormError } from '../components/shared/Form'
 import { HelpOffers } from '../features/contributions/HelpOffers'
 import { Discussion } from '../features/discussion/Discussion'
+import { ManageProblem } from '../features/problems/ManageProblem'
 import { ProblemActions } from '../features/problems/ProblemActions'
+import { ResolutionCheck } from '../features/problems/ResolutionCheck'
 import { useProblem } from '../features/problems/problemApi'
 import { StatusBadge } from '../features/problems/StatusBadge'
 import { SolutionCard } from '../features/solutions/SolutionCard'
@@ -67,6 +69,8 @@ export function ProblemDetailPage() {
       </header>
 
       {p.isPublic && <ProblemActions problem={p} />}
+      {p.isPublic && <ResolutionCheck problem={p} />}
+      {p.isPublic && <ManageProblem problem={p} />}
 
       {p.photos.length > 0 && (
         <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Photos">
@@ -139,11 +143,32 @@ export function ProblemDetailPage() {
 
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">Timeline</h2>
-        <ol className="space-y-2 border-l-2 border-stone-200 pl-4 text-sm">
+        <ol className="space-y-3 border-l-2 border-stone-200 pl-4 text-sm">
           {p.timeline.map((t, i) => (
-            <li key={i}>
-              <p className="font-medium">{t.toStatus ? statusLabels[t.toStatus] : t.type}</p>
-              {t.body && <p className="text-stone-600">{t.body}</p>}
+            <li key={i} className="space-y-1">
+              <p className="font-medium">
+                {t.type === 'PROGRESS' ? 'Progress update' : t.toStatus ? statusLabels[t.toStatus] : t.type}
+                {t.authorName && (
+                  <span className="font-normal text-stone-600">
+                    {' '}
+                    · {t.authorName}
+                    {t.authorRole === 'OWNER' && ' (raised this problem)'}
+                    {t.authorRole === 'ACCEPTED_PROPOSER' && ' (delivering the solution)'}
+                  </span>
+                )}
+              </p>
+              {t.body && <p className="whitespace-pre-line text-stone-700">{t.body}</p>}
+              {t.photos.length > 0 && (
+                <ul className="flex flex-wrap gap-2" aria-label="Update photos">
+                  {t.photos.map((photo, j) => (
+                    <li key={photo.id}>
+                      <a href={apiUrl(photo.url)} target="_blank" rel="noreferrer">
+                        <img src={apiUrl(photo.url)} alt={`Update photo ${j + 1}`} loading="lazy" className="h-20 w-20 rounded object-cover" />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
               <p className="text-xs text-stone-500">{dateTime.format(new Date(t.at))}</p>
             </li>
           ))}

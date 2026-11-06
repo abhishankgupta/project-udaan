@@ -1,12 +1,18 @@
 package org.udaan.problem;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import org.udaan.shared.Ids;
 
@@ -38,6 +44,16 @@ class ProblemUpdate {
 
     private String body;
 
+    /** OWNER, ACCEPTED_PROPOSER or COMMUNITY; null for automatic entries. */
+    @Column(name = "author_role")
+    private String authorRole;
+
+    @ElementCollection
+    @CollectionTable(name = "problem_update_media", joinColumns = @JoinColumn(name = "update_id"))
+    @OrderColumn(name = "sort_order")
+    @Column(name = "media_id", nullable = false)
+    private List<UUID> mediaIds = new ArrayList<>();
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -45,7 +61,14 @@ class ProblemUpdate {
     }
 
     static ProblemUpdate statusChange(UUID problemId, UUID authorId, ProblemStatus from, ProblemStatus to, String body) {
+        return statusChange(problemId, authorId, null, from, to, body, List.of());
+    }
+
+    static ProblemUpdate statusChange(UUID problemId, UUID authorId, String authorRole, ProblemStatus from, ProblemStatus to,
+                                      String body, List<UUID> mediaIds) {
         ProblemUpdate u = new ProblemUpdate();
+        u.authorRole = authorRole;
+        u.mediaIds = new ArrayList<>(mediaIds);
         u.id = Ids.newId();
         u.problemId = problemId;
         u.authorId = authorId;
@@ -57,6 +80,22 @@ class ProblemUpdate {
         return u;
     }
 
+    static ProblemUpdate progress(UUID problemId, UUID authorId, String authorRole, String body, List<UUID> mediaIds) {
+        ProblemUpdate u = new ProblemUpdate();
+        u.id = Ids.newId();
+        u.problemId = problemId;
+        u.authorId = authorId;
+        u.authorRole = authorRole;
+        u.type = ProblemUpdateType.PROGRESS;
+        u.body = body;
+        u.mediaIds = new ArrayList<>(mediaIds);
+        u.createdAt = Instant.now();
+        return u;
+    }
+
+    UUID getAuthorId() { return authorId; }
+    String getAuthorRole() { return authorRole; }
+    List<UUID> getMediaIds() { return List.copyOf(mediaIds); }
     ProblemUpdateType getType() { return type; }
     ProblemStatus getFromStatus() { return fromStatus; }
     ProblemStatus getToStatus() { return toStatus; }

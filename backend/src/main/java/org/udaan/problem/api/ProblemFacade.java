@@ -20,7 +20,10 @@ public interface ProblemFacade {
     void solutionWithdrawn(UUID problemId);
 
     /** Records the owner's choice on the problem's timeline and moves it to SOLUTION_ACCEPTED. */
-    void solutionAccepted(UUID problemId, UUID ownerId, String solutionTitle);
+    void solutionAccepted(UUID problemId, UUID ownerId, UUID solutionId, UUID proposerId, String solutionTitle);
+
+    /** People who should hear about a problem: its owner, followers, supporters and accepted proposer. */
+    java.util.Set<UUID> audience(UUID problemId);
 
     void commentCountChanged(UUID problemId, int delta);
 }

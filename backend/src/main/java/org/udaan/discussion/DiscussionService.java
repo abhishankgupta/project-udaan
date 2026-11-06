@@ -28,25 +28,29 @@ class DiscussionService {
     private final ProblemFacade problems;
     private final SolutionFacade solutions;
     private final IdentityFacade identity;
+    private final org.springframework.context.ApplicationEventPublisher events;
 
-    DiscussionService(CommentRepository comments, ProblemFacade problems, SolutionFacade solutions, IdentityFacade identity) {
+    DiscussionService(CommentRepository comments, ProblemFacade problems, SolutionFacade solutions, IdentityFacade identity,
+                      org.springframework.context.ApplicationEventPublisher events) {
+        this.events = events;
         this.comments = comments;
         this.problems = problems;
         this.solutions = solutions;
         this.identity = identity;
     }
 
-    record Target(Comment.TargetType type, UUID targetId, UUID problemId) {
+    /** Where a discussion lives, plus what notifications need: its title, owner and web path. */
+    record Target(Comment.TargetType type, UUID targetId, UUID problemId, String title, UUID ownerId, String link) {
     }
 
     Target problemTarget(String ref) {
         ProblemRef p = problems.requirePublic(ref);
-        return new Target(Comment.TargetType.PROBLEM, p.id(), p.id());
+        return new Target(Comment.TargetType.PROBLEM, p.id(), p.id(), p.title(), p.submitterId(), "/problems/" + p.publicCode());
     }
 
     Target solutionTarget(UUID solutionId) {
         SolutionRef s = solutions.requireVisible(solutionId);
-        return new Target(Comment.TargetType.SOLUTION, s.id(), s.problemId());
+        return new Target(Comment.TargetType.SOLUTION, s.id(), s.problemId(), s.title(), s.proposerId(), "/solutions/" + s.id());
     }
 
     @Transactional(readOnly = true)
@@ -79,10 +83,12 @@ class DiscussionService {
             throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "COMMENT_RATE_LIMITED",
                     "You're commenting very quickly. Please wait a little and try again.");
         }
+        UUID parentAuthorId = null;
         if (parentId != null) {
             Comment parent = comments.findById(parentId)
                     .filter(p -> p.getTargetType() == target.type() && p.getTargetId().equals(target.targetId()))
                     .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PARENT", "You can only reply to a comment in this discussion"));
+            parentAuthorId = parent.getAuthorId();
             if (parent.getParentId() != null) {
                 parentId = parent.getParentId(); // keep threads one level deep
             }
@@ -92,6 +98,9 @@ class DiscussionService {
         }
         Comment comment = comments.save(Comment.post(target.type(), target.targetId(), target.problemId(), parentId, authorId, body));
         problems.commentCountChanged(target.problemId(), 1);
+        String excerpt = comment.getBody().length() > 140 ? comment.getBody().substring(0, 137) + "..." : comment.getBody();
+        events.publishEvent(new org.udaan.discussion.api.CommentPosted(target.problemId(), target.title(), target.link(),
+                target.ownerId(), parentAuthorId, authorId, excerpt));
         return view(comment, authorId, new HashMap<>(), List.of());
     }
 

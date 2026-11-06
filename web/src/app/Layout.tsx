@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router'
 import { authApi } from '../features/auth/authApi'
 import { useRestoreSession } from '../features/auth/useRestoreSession'
+import { NotificationBell } from '../features/notifications/NotificationBell'
 import { config, isProduction } from '../lib/config'
 import { useSession } from '../lib/session'
 
@@ -28,6 +29,7 @@ function AccountMenu() {
   }
   return (
     <div className="flex items-center gap-3 text-sm">
+      <NotificationBell />
       <Link to="/me/contributions" className="text-stone-700 hover:text-stone-900">
         My contributions
       </Link>
