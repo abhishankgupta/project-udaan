@@ -1,5 +1,8 @@
-import { Link, NavLink, Outlet } from 'react-router'
+import { Link, NavLink, Outlet, useNavigate } from 'react-router'
+import { authApi } from '../features/auth/authApi'
+import { useRestoreSession } from '../features/auth/useRestoreSession'
 import { config, isProduction } from '../lib/config'
+import { useSession } from '../lib/session'
 
 const navItems = [
   { to: '/', label: 'Home' },
@@ -8,7 +11,44 @@ const navItems = [
   { to: '/organizations', label: 'Organizations' },
 ]
 
+function AccountMenu() {
+  const user = useSession((s) => s.user)
+  const restoring = useSession((s) => s.restoring)
+  const refreshToken = useSession((s) => s.refreshToken)
+  const signOut = useSession((s) => s.signOut)
+  const navigate = useNavigate()
+
+  if (restoring) return null
+  if (!user) {
+    return (
+      <Link to="/login" className="text-sm font-medium text-stone-700 hover:text-stone-900">
+        Sign in
+      </Link>
+    )
+  }
+  return (
+    <div className="flex items-center gap-3 text-sm">
+      <Link to="/me" className="font-medium text-stone-800 hover:text-udaan-700">
+        {user.displayName}
+      </Link>
+      <button
+        type="button"
+        className="text-stone-500 hover:text-stone-900"
+        onClick={() => {
+          if (refreshToken) void authApi.logout(refreshToken).catch(() => undefined)
+          signOut()
+          navigate('/')
+        }}
+      >
+        Sign out
+      </button>
+    </div>
+  )
+}
+
 export function Layout() {
+  useRestoreSession()
+
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900">
       {!isProduction && (
@@ -35,6 +75,7 @@ export function Layout() {
               </NavLink>
             ))}
           </nav>
+          <AccountMenu />
           <Link
             to="/problems/new"
             className="rounded-md bg-udaan-600 px-3 py-2 text-sm font-semibold text-white hover:bg-udaan-700"
