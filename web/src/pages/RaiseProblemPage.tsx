@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { Button, FormError, TextArea, TextField } from '../components/shared/Form'
 import { useCities, useLocalities } from '../features/geo/geoApi'
 import { PhotoPicker } from '../features/problems/PhotoPicker'
+import { SimilarProblems } from '../features/problems/SimilarProblems'
 import { useSubmitProblem, type Photo } from '../features/problems/problemApi'
 import { useCategories } from '../features/taxonomy/useCategories'
 import { ApiError, errorMessage } from '../lib/api'
@@ -304,6 +305,12 @@ export function RaiseProblemPage() {
           {locationError && <p className="text-red-700">{locationError}</p>}
         </div>
       </Section>
+
+      <SimilarProblems
+        title={form.title}
+        cityId={cityId}
+        localityId={form.locality && form.locality !== OTHER ? Number(form.locality) : null}
+      />
 
       <Section step={3} title="Photos">
         <PhotoPicker photos={photos} onChange={setPhotos} onBusyChange={setPhotosBusy} />

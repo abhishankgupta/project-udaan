@@ -1,5 +1,6 @@
 import { Link, useLocation, useParams } from 'react-router'
 import { FormError } from '../components/shared/Form'
+import { ProblemActions } from '../features/problems/ProblemActions'
 import { useProblem } from '../features/problems/problemApi'
 import { StatusBadge } from '../features/problems/StatusBadge'
 import { ApiError, apiUrl, errorMessage } from '../lib/api'
@@ -59,6 +60,8 @@ export function ProblemDetailPage() {
           {dateTime.format(new Date(p.createdAt))}
         </p>
       </header>
+
+      {p.isPublic && <ProblemActions problem={p} />}
 
       {p.photos.length > 0 && (
         <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Photos">

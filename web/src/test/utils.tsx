@@ -8,12 +8,12 @@ type Handler = (body: unknown, init: RequestInit) => Response | Promise<Response
 
 /** Routes fetch calls by "METHOD /path" to handlers; unknown calls return 404. Records every call. */
 export function mockApi(handlers: Record<string, Handler>) {
-  const calls: { key: string; body: unknown; headers: Record<string, string> }[] = []
+  const calls: { key: string; body: unknown; headers: Record<string, string>; query: URLSearchParams }[] = []
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init = {}) => {
     const url = new URL(String(input), 'http://localhost')
     const key = `${init.method ?? 'GET'} ${url.pathname}`
     const body = typeof init.body === 'string' ? JSON.parse(init.body) : undefined
-    calls.push({ key, body, headers: (init.headers ?? {}) as Record<string, string> })
+    calls.push({ key, body, headers: (init.headers ?? {}) as Record<string, string>, query: url.searchParams })
     const handler = handlers[key]
     return handler ? handler(body, init) : new Response(null, { status: 404 })
   })
@@ -27,6 +27,8 @@ export const defaultHandlers: Record<string, Handler> = {
   'GET /api/v1/categories': () => Response.json([]),
   'GET /api/v1/meta': () => Response.json({ name: 'Project Udaan API', environment: 'test', version: 'abcdef1' }),
   'GET /api/v1/auth/options': () => Response.json({ emailEnabled: true, phoneOtpEnabled: true, phoneOtpTestMode: true }),
+  'GET /api/v1/problems': () => Response.json({ items: [], page: 0, size: 20, hasMore: false }),
+  'GET /api/v1/problems/similar': () => Response.json([]),
 }
 
 export function authResponse(name = 'Asha Verma', extra: Partial<{ email: string; phone: string }> = {}) {

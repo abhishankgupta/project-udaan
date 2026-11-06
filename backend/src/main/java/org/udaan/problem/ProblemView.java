@@ -26,6 +26,8 @@ record ProblemView(
         Counts counts,
         List<TimelineEntry> timeline,
         boolean viewerIsOwner,
+        boolean viewerSupports,
+        boolean viewerFollows,
         Instant createdAt) {
 
     record Category(UUID id, String code, String nameEn, String nameHi) {

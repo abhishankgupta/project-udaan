@@ -11,6 +11,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 /**
@@ -48,6 +49,17 @@ public class ApiExceptionHandler {
                 .map(e -> Map.of("field", e.getField(), "message", String.valueOf(e.getDefaultMessage())))
                 .toList();
         problem.setProperty("fieldErrors", fieldErrors);
+        return problem;
+    }
+
+    /** A query or path parameter of the wrong type, e.g. an unknown sort value. */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ProblemDetail handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+                "Invalid value for '" + ex.getName() + "'");
+        problem.setType(URI.create("https://udaan.org/errors/validation"));
+        problem.setProperty("code", "INVALID_PARAMETER");
+        problem.setProperty("fieldErrors", List.of(Map.of("field", ex.getName(), "message", "invalid value")));
         return problem;
     }
 

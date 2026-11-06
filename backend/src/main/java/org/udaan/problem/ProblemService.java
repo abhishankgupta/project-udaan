@@ -31,10 +31,14 @@ class ProblemService {
     private final IdentityFacade identity;
     private final ProblemProperties properties;
     private final UdaanProperties udaan;
+    private final ProblemFeedRepository feed;
+    private final ProblemCounters counters;
 
     ProblemService(ProblemRepository problems, ProblemUpdateRepository updates, TaxonomyFacade taxonomy,
                    GeoFacade geo, MediaFacade media, IdentityFacade identity, ProblemProperties properties,
-                   UdaanProperties udaan) {
+                   UdaanProperties udaan, ProblemFeedRepository feed, ProblemCounters counters) {
+        this.feed = feed;
+        this.counters = counters;
         this.problems = problems;
         this.updates = updates;
         this.taxonomy = taxonomy;
@@ -89,14 +93,55 @@ class ProblemService {
 
     @Transactional(readOnly = true)
     ProblemView get(String ref, UUID viewerId) {
-        Optional<Problem> found = ref.startsWith("UDN-") ? problems.findByPublicCode(ref) : parseUuid(ref).flatMap(problems::findById);
-        Problem problem = found.filter(p -> p.isVisibleTo(viewerId)).orElseThrow(ProblemService::notFound);
+        Problem problem = find(ref).filter(p -> p.isVisibleTo(viewerId)).orElseThrow(ProblemService::notFound);
         return view(problem, viewerId);
     }
 
     @Transactional(readOnly = true)
     List<ProblemSummary> mine(UUID userId) {
         return problems.findBySubmitterIdOrderByCreatedAtDesc(userId).stream().map(this::summary).toList();
+    }
+
+    @Transactional(readOnly = true)
+    ProblemFeedRepository.Page feed(ProblemFeedQuery query, UUID viewerId) {
+        return feed.feed(query, viewerId);
+    }
+
+    @Transactional(readOnly = true)
+    List<ProblemFeedRepository.FeedItem> similar(String title, int cityId, Integer localityId) {
+        if (title == null || title.trim().length() < 4) {
+            return List.of();
+        }
+        return feed.similar(title, cityId, localityId);
+    }
+
+    record Toggle(boolean active, int count) {
+    }
+
+    @Transactional
+    Toggle support(String ref, UUID userId, boolean add) {
+        Problem problem = publicProblem(ref);
+        if (add && problem.getSubmitterId().equals(userId)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "CANNOT_SUPPORT_OWN",
+                    "You raised this problem, so your support is already counted in spirit. Share it to gather more.");
+        }
+        int count = add ? counters.addSupport(problem.getId(), userId) : counters.removeSupport(problem.getId(), userId);
+        return new Toggle(add, count);
+    }
+
+    @Transactional
+    Toggle follow(String ref, UUID userId, boolean add) {
+        Problem problem = publicProblem(ref);
+        int count = add ? counters.addFollow(problem.getId(), userId) : counters.removeFollow(problem.getId(), userId);
+        return new Toggle(add, count);
+    }
+
+    private Problem publicProblem(String ref) {
+        return find(ref).filter(p -> p.getStatus().isPublic()).orElseThrow(ProblemService::notFound);
+    }
+
+    private Optional<Problem> find(String ref) {
+        return ref.startsWith("UDN-") ? problems.findByPublicCode(ref) : parseUuid(ref).flatMap(problems::findById);
     }
 
     private boolean autoApprove() {
@@ -138,7 +183,7 @@ class ProblemService {
                 p.getAssistanceTypes(), p.getStatus(), p.getStatus().isPublic(), submitter,
                 media.describe(p.getMediaIds()),
                 new ProblemView.Counts(p.getSupportCount(), p.getSolutionCount(), p.getCommentCount(), p.getFollowerCount()),
-                timeline, owner, p.getCreatedAt());
+                timeline, owner, feed.supports(p.getId(), viewerId), feed.follows(p.getId(), viewerId), p.getCreatedAt());
     }
 
     private ProblemSummary summary(Problem p) {

@@ -204,3 +204,26 @@ describe('Problem pages', () => {
     expect(screen.getByText('Under review')).toBeInTheDocument()
   })
 })
+
+describe('Duplicate hints', () => {
+  it('suggests similar problems while the title is typed', async () => {
+    useSession.setState({ user: authResponse('Asha').user, accessToken: 'a', refreshToken: 'r', restoring: false })
+    mockApi({
+      ...handlers,
+      'GET /api/v1/problems/similar': () =>
+        Response.json([
+          {
+            id: 'p5', publicCode: 'UDN-LKO-000005', title: 'Waterlogging on Station Road', categoryName: 'Drainage and water',
+            localityName: 'Aliganj', cityName: 'Lucknow', urgency: 'HIGH', status: 'OPEN_FOR_SOLUTIONS', supporters: 12, solutions: 1,
+            thumbnailUrl: null, createdAt: '2026-11-01T10:00:00Z',
+          },
+        ]),
+    })
+    const user = userEvent.setup()
+    renderAt('/problems/new')
+
+    await user.type(await screen.findByLabelText('Title'), 'Waterlogging near Station Road')
+    expect(await screen.findByText(/may already have been reported/, {}, { timeout: 3000 })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Waterlogging on Station Road' })).toHaveAttribute('href', '/problems/UDN-LKO-000005')
+  })
+})
