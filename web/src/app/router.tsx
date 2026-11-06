@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router'
 import { RequireAuth } from '../features/auth/RequireAuth'
 import { ComingSoonPage } from '../pages/ComingSoonPage'
+import { ExploreProblemsPage } from '../pages/ExploreProblemsPage'
 import { HomePage } from '../pages/HomePage'
 import { LoginPage } from '../pages/LoginPage'
 import { MyProblemsPage } from '../pages/MyProblemsPage'
@@ -21,7 +22,7 @@ export const routes = [
       { path: 'register', element: <RegisterPage /> },
       { path: 'me', element: <RequireAuth><MyProfilePage /></RequireAuth> },
       { path: 'users/:id', element: <PublicProfilePage /> },
-      { path: 'problems', element: <ComingSoonPage title="Explore Problems" /> },
+      { path: 'problems', element: <ExploreProblemsPage /> },
       { path: 'problems/new', element: <RequireAuth><RaiseProblemPage /></RequireAuth> },
       { path: 'problems/:code', element: <ProblemDetailPage /> },
       { path: 'me/problems', element: <RequireAuth><MyProblemsPage /></RequireAuth> },

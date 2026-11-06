@@ -33,6 +33,14 @@ public final class TestApi {
         return send("POST", path, json, token);
     }
 
+    public Response put(String path, String token) {
+        return send("PUT", path, null, token);
+    }
+
+    public Response delete(String path, String token) {
+        return send("DELETE", path, null, token);
+    }
+
     public Response patch(String path, String json, String token) {
         return send("PATCH", path, json, token);
     }

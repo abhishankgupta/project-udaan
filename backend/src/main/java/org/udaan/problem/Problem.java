@@ -86,16 +86,17 @@ class Problem {
     @Column(name = "is_anonymous", nullable = false)
     private boolean anonymous;
 
-    @Column(name = "support_count", nullable = false)
+    // Counters are changed only by atomic SQL increments (ProblemCounters), never by saving the entity.
+    @Column(name = "support_count", nullable = false, updatable = false)
     private int supportCount;
 
-    @Column(name = "solution_count", nullable = false)
+    @Column(name = "solution_count", nullable = false, updatable = false)
     private int solutionCount;
 
-    @Column(name = "comment_count", nullable = false)
+    @Column(name = "comment_count", nullable = false, updatable = false)
     private int commentCount;
 
-    @Column(name = "follower_count", nullable = false)
+    @Column(name = "follower_count", nullable = false, updatable = false)
     private int followerCount;
 
     @Column(name = "created_at", nullable = false)

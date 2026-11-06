@@ -1,10 +1,8 @@
 import { Link } from 'react-router'
 import { FormError } from '../components/shared/Form'
 import { useMyProblems } from '../features/problems/problemApi'
-import { StatusBadge } from '../features/problems/StatusBadge'
-import { apiUrl, errorMessage } from '../lib/api'
-
-const date = new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeZone: 'Asia/Kolkata' })
+import { ProblemCard } from '../features/problems/ProblemCard'
+import { errorMessage } from '../lib/api'
 
 export function MyProblemsPage() {
   const problems = useMyProblems()
@@ -23,22 +21,7 @@ export function MyProblemsPage() {
       <ul className="space-y-3">
         {problems.data?.map((p) => (
           <li key={p.id}>
-            <Link to={`/problems/${p.publicCode}`} className="flex gap-3 rounded-lg border border-stone-200 bg-white p-3 hover:border-udaan-600">
-              {p.thumbnailUrl ? (
-                <img src={apiUrl(p.thumbnailUrl)} alt="" className="h-16 w-16 flex-none rounded object-cover" />
-              ) : (
-                <div className="h-16 w-16 flex-none rounded bg-stone-100" aria-hidden="true" />
-              )}
-              <div className="min-w-0 space-y-1">
-                <p className="truncate font-medium">{p.title}</p>
-                <p className="flex flex-wrap items-center gap-2 text-xs text-stone-500">
-                  <StatusBadge status={p.status} />
-                  <span>{p.publicCode}</span>
-                  <span>{[p.localityName, p.cityName].filter(Boolean).join(', ')}</span>
-                  <span>{date.format(new Date(p.createdAt))}</span>
-                </p>
-              </div>
-            </Link>
+            <ProblemCard problem={p} />
           </li>
         ))}
       </ul>

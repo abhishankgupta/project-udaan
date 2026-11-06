@@ -15,7 +15,10 @@ import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -58,6 +61,55 @@ class ProblemController {
                 r.title(), r.description(), r.categoryId(), r.cityId(), r.localityId(), r.localityText(),
                 r.addressText(), r.latitude(), r.longitude(), r.urgency(), r.peopleAffected(), r.estimatedImpact(),
                 r.desiredOutcome(), r.assistanceTypes(), r.anonymous(), r.mediaIds()));
+    }
+
+    /** The public feed with filters, sorting and search (section 9). */
+    @GetMapping("/api/v1/problems")
+    ProblemFeedRepository.Page feed(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) Integer cityId,
+            @RequestParam(required = false) Integer localityId,
+            @RequestParam(required = false) UUID categoryId,
+            @RequestParam(required = false) ProblemStatus status,
+            @RequestParam(required = false) Urgency urgency,
+            @RequestParam(required = false) AssistanceType assistance,
+            @RequestParam(required = false) ProblemFeedQuery.Sort sort,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal Jwt jwt) {
+        return problems.feed(new ProblemFeedQuery(q, cityId, localityId, categoryId, status, urgency, assistance, sort, page, size),
+                viewer(jwt));
+    }
+
+    /** "This may already have been reported" hints while someone writes a new problem. */
+    @GetMapping("/api/v1/problems/similar")
+    List<ProblemFeedRepository.FeedItem> similar(@RequestParam String title, @RequestParam int cityId,
+                                                 @RequestParam(required = false) Integer localityId) {
+        return problems.similar(title, cityId, localityId);
+    }
+
+    @PutMapping("/api/v1/problems/{ref}/support")
+    ProblemService.Toggle support(@PathVariable String ref, @AuthenticationPrincipal Jwt jwt) {
+        return problems.support(ref, viewer(jwt), true);
+    }
+
+    @DeleteMapping("/api/v1/problems/{ref}/support")
+    ProblemService.Toggle unsupport(@PathVariable String ref, @AuthenticationPrincipal Jwt jwt) {
+        return problems.support(ref, viewer(jwt), false);
+    }
+
+    @PutMapping("/api/v1/problems/{ref}/follow")
+    ProblemService.Toggle follow(@PathVariable String ref, @AuthenticationPrincipal Jwt jwt) {
+        return problems.follow(ref, viewer(jwt), true);
+    }
+
+    @DeleteMapping("/api/v1/problems/{ref}/follow")
+    ProblemService.Toggle unfollow(@PathVariable String ref, @AuthenticationPrincipal Jwt jwt) {
+        return problems.follow(ref, viewer(jwt), false);
+    }
+
+    private static UUID viewer(Jwt jwt) {
+        return jwt == null ? null : UUID.fromString(jwt.getSubject());
     }
 
     /** By public code (UDN-LKO-000123) or id. Unpublished problems are visible only to their submitter. */

@@ -29,6 +29,8 @@ class ProductionRulesTest {
         assertThat(api.get("/api/v1/problems/" + code, token).status()).isEqualTo(200);
         assertThat(api.get("/api/v1/problems/" + code).status()).isEqualTo(404);
         assertThat(api.get("/api/v1/problems/" + code, api.registerNewUser("Other")).status()).isEqualTo(404);
+        assertThat(api.get("/api/v1/problems?size=50").body()).as("not in the public feed").doesNotContain(code);
+        assertThat(api.put("/api/v1/problems/" + code + "/support", api.registerNewUser("Fan")).status()).isEqualTo(404);
     }
 
     @Test

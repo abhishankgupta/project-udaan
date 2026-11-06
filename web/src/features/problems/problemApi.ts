@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiRequest } from '../../lib/api'
 import type { AssistanceType, ProblemStatus, Urgency } from '../../lib/labels'
 import { useSession } from '../../lib/session'
@@ -55,6 +55,8 @@ export interface ProblemView {
   counts: { supporters: number; solutions: number; comments: number; followers: number }
   timeline: { type: string; fromStatus: ProblemStatus | null; toStatus: ProblemStatus | null; body: string | null; at: string }[]
   viewerIsOwner: boolean
+  viewerSupports: boolean
+  viewerFollows: boolean
   createdAt: string
 }
 
@@ -71,6 +73,26 @@ export interface ProblemSummary {
   solutions: number
   thumbnailUrl: string | null
   createdAt: string
+  supportedByMe?: boolean
+}
+
+export type FeedSort = 'RECENT' | 'SUPPORTED' | 'TRENDING' | 'IMPACT' | 'RELEVANCE'
+
+export interface FeedFilters {
+  q?: string
+  localityId?: string
+  categoryId?: string
+  status?: string
+  urgency?: string
+  assistance?: string
+  sort?: FeedSort
+}
+
+export interface FeedPage {
+  items: ProblemSummary[]
+  page: number
+  size: number
+  hasMore: boolean
 }
 
 export function uploadPhoto(file: Blob, filename: string) {
@@ -105,5 +127,63 @@ export function useMyProblems() {
   return useQuery({
     queryKey: ['my-problems'],
     queryFn: () => apiRequest<ProblemSummary[]>('/api/v1/me/problems', { auth: true }),
+  })
+}
+
+function feedParams(filters: FeedFilters, page: number, size: number) {
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(filters)) if (value) params.set(key, value)
+  params.set('page', String(page))
+  params.set('size', String(size))
+  return params.toString()
+}
+
+export function useFeed(filters: FeedFilters, size = 20) {
+  const signedIn = useSession((s) => s.user !== null)
+  const restoring = useSession((s) => s.restoring)
+  return useInfiniteQuery({
+    queryKey: ['feed', filters, size, signedIn],
+    queryFn: ({ pageParam }) => apiRequest<FeedPage>(`/api/v1/problems?${feedParams(filters, pageParam, size)}`, { auth: signedIn }),
+    initialPageParam: 0,
+    getNextPageParam: (last) => (last.hasMore ? last.page + 1 : undefined),
+    enabled: !restoring,
+  })
+}
+
+export function useSimilarProblems(title: string, cityId: number | null, localityId: number | null) {
+  const trimmed = title.trim()
+  return useQuery({
+    queryKey: ['similar', trimmed, cityId, localityId],
+    queryFn: () => {
+      const params = new URLSearchParams({ title: trimmed, cityId: String(cityId) })
+      if (localityId) params.set('localityId', String(localityId))
+      return apiRequest<ProblemSummary[]>(`/api/v1/problems/similar?${params.toString()}`)
+    },
+    enabled: trimmed.length >= 10 && cityId !== null,
+    staleTime: 60_000,
+  })
+}
+
+export interface Toggle {
+  active: boolean
+  count: number
+}
+
+/** Support or follow on/off, updating the cached problem so the page reflects it straight away. */
+export function useToggle(code: string, kind: 'support' | 'follow') {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (on: boolean) =>
+      apiRequest<Toggle>(`/api/v1/problems/${encodeURIComponent(code)}/${kind}`, { method: on ? 'PUT' : 'DELETE', auth: true }),
+    onSuccess: (result) => {
+      queryClient.setQueryData<ProblemView>(['problem', code], (p) =>
+        p && kind === 'support'
+          ? { ...p, viewerSupports: result.active, counts: { ...p.counts, supporters: result.count } }
+          : p
+            ? { ...p, viewerFollows: result.active, counts: { ...p.counts, followers: result.count } }
+            : p,
+      )
+      void queryClient.invalidateQueries({ queryKey: ['feed'] })
+    },
   })
 }
