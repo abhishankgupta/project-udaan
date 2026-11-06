@@ -35,14 +35,15 @@ interface RequestOptions {
 }
 
 async function rawRequest<T>(path: string, method: Method, body: unknown, token: string | null): Promise<T> {
+  const isForm = typeof FormData !== 'undefined' && body instanceof FormData
   const headers: Record<string, string> = { Accept: 'application/json' }
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json'
   if (token) headers.Authorization = `Bearer ${token}`
 
   const response = await fetch(`${config.apiBaseUrl}${path}`, {
     method,
     headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
   })
   if (!response.ok) {
     let problem: ApiProblem | undefined
@@ -97,6 +98,11 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     }
     throw error
   }
+}
+
+/** Absolute URL for an API path such as a photo's "/api/v1/media/…". */
+export function apiUrl(path: string): string {
+  return `${config.apiBaseUrl}${path}`
 }
 
 export function getJson<T>(path: string): Promise<T> {

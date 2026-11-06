@@ -13,6 +13,10 @@ spring:
       maximum-pool-size: ${DB_POOL_SIZE:5}
       minimum-idle: 1
       connection-timeout: 30000
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
   jpa:
     open-in-view: false
     hibernate:
@@ -54,6 +58,10 @@ udaan:
       send-window: 15m
       # Until an SMS provider is connected, non-production environments show the code on screen.
       expose-code-outside-production: true
+  problems:
+    # Until the moderation dashboard (step 6), test environments publish new problems immediately.
+    auto-approve-outside-production: true
+    max-per-user-per-day: 5
 
 logging:
   level:
