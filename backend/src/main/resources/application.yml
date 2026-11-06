@@ -42,6 +42,18 @@ udaan:
   environment: ${UDAAN_ENVIRONMENT:local}
   version: ${UDAAN_VERSION:dev}
   cors-origins: ${UDAAN_CORS_ORIGINS:http://localhost:5173}
+  auth:
+    # Optional: 32+ characters. If unset, a random key is used per restart (see AuthProperties).
+    jwt-secret: ${UDAAN_JWT_SECRET:}
+    access-token-ttl: 15m
+    refresh-token-ttl: 30d
+    otp:
+      ttl: 5m
+      max-attempts: 5
+      max-sends-per-window: 3
+      send-window: 15m
+      # Until an SMS provider is connected, non-production environments show the code on screen.
+      expose-code-outside-production: true
 
 logging:
   level:
