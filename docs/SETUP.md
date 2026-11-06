@@ -6,7 +6,7 @@ This connects the GitHub repo to free hosting. Do it once, in this order. It tak
 | --- | --- | --- | --- |
 | API (Spring Boot) | Render, free web service (Docker image) | `udaan-api-test` | `udaan-api-prod` |
 | Database (PostgreSQL + PostGIS) | Neon, free plan | project `udaan-test` | project `udaan-prod` |
-| Web app (React) | Cloudflare Pages, free | project `udaan-web-test` | project `udaan-web` |
+| Web app (React) | Cloudflare Workers static assets, free | Worker `udaan-web-test` | Worker `udaan-web` |
 | API image | GitHub Container Registry | shared: one image per commit | same image as test |
 
 Pick regions close to India on every service: Neon **AWS Asia Pacific (Singapore)**, Render **Singapore**.
@@ -41,17 +41,20 @@ PostGIS is enabled automatically by the app's first database migration.
    | `SPRING_DATASOURCE_USERNAME` | from Neon | from Neon |
    | `SPRING_DATASOURCE_PASSWORD` | from Neon | from Neon |
    | `UDAAN_ENVIRONMENT` | `test` | `production` |
-   | `UDAAN_CORS_ORIGINS` | `https://udaan-web-test.pages.dev` | `https://udaan-web.pages.dev` |
+   | `UDAAN_CORS_ORIGINS` | the `udaan-web-test` workers.dev address | the `udaan-web` workers.dev address |
 
 4. Health check path: `/actuator/health`.
 5. **Settings → Deploy Hook**: copy the URL. It is a secret.
 6. Repeat for `udaan-api-prod`.
 
-## 4. Cloudflare Pages (web app)
+## 4. Cloudflare (web app)
 
-1. Sign up at cloudflare.com (free). **Workers & Pages → Create → Pages → Direct Upload**, create project `udaan-web-test`, then `udaan-web`. (Uploading any placeholder file is fine; the pipeline replaces it.)
-2. **My Profile → API Tokens → Create Token → "Edit Cloudflare Workers" template**, or a custom token with *Account → Cloudflare Pages → Edit*. Copy it.
-3. Copy your **Account ID** from the Workers & Pages overview page.
+1. Sign up at cloudflare.com (free). **Compute → Workers & Pages → Create application → Upload your static files**.
+2. Name it `udaan-web-test`, upload any placeholder `index.html` (or a zip of one), and deploy. The pipeline replaces it.
+3. Note its address, e.g. `https://udaan-web-test.<your-subdomain>.workers.dev`.
+4. Repeat with the name `udaan-web`.
+5. **My Profile → API Tokens → Create Token → Custom token**, permission *Account → Workers Scripts → Edit*, your account as the resource. Copy the token.
+6. Your **Account ID** is the long code after `dash.cloudflare.com/` in the address bar.
 
 ## 5. GitHub environments and secrets
 
@@ -65,8 +68,8 @@ Repo → **Settings → Environments**, create `test` and `production`:
 | --- | --- | --- | --- |
 | `RENDER_DEPLOY_HOOK` | secret | test deploy hook URL | prod deploy hook URL |
 | `API_URL` | variable | `https://udaan-api-test.onrender.com` | `https://udaan-api-prod.onrender.com` |
-| `WEB_URL` | variable | `https://udaan-web-test.pages.dev` | `https://udaan-web.pages.dev` |
-| `CF_PAGES_PROJECT` | variable | `udaan-web-test` | `udaan-web` |
+| `WEB_URL` | variable | `https://udaan-web-test.<subdomain>.workers.dev` | `https://udaan-web.<subdomain>.workers.dev` |
+| `CF_WORKER_NAME` | variable | `udaan-web-test` | `udaan-web` |
 
 On `production` only: tick **Required reviewers**, add yourself, and under **Deployment branches** allow only `main`. This is the gate: production never deploys until you click **Approve**.
 

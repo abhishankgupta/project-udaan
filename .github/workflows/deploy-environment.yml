@@ -1,7 +1,7 @@
 name: Deploy to one environment
 
 # Reusable: deploys a given API image to Render and the matching web build to
-# Cloudflare Pages, for the GitHub environment named in `environment`.
+# Cloudflare Workers (static assets), for the GitHub environment named in `environment`.
 # The "production" environment has a required reviewer, so this job pauses
 # until that person clicks Approve in GitHub.
 on:
@@ -33,14 +33,14 @@ jobs:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           API_URL: ${{ vars.API_URL }}
           WEB_URL: ${{ vars.WEB_URL }}
-          CF_PROJECT: ${{ vars.CF_PAGES_PROJECT }}
+          CF_WORKER: ${{ vars.CF_WORKER_NAME }}
         run: |
           missing=""
           [ -z "${DEPLOY_HOOK}" ] && missing="${missing} secret:RENDER_DEPLOY_HOOK"
           [ -z "${CF_TOKEN}" ] && missing="${missing} secret:CLOUDFLARE_API_TOKEN"
           [ -z "${API_URL}" ] && missing="${missing} var:API_URL"
           [ -z "${WEB_URL}" ] && missing="${missing} var:WEB_URL"
-          [ -z "${CF_PROJECT}" ] && missing="${missing} var:CF_PAGES_PROJECT"
+          [ -z "${CF_WORKER}" ] && missing="${missing} var:CF_WORKER_NAME"
           if [ -n "${missing}" ]; then
             echo "::error::The '${{ inputs.environment }}' environment is not set up yet. Missing:${missing}. See docs/SETUP.md."
             exit 1
@@ -89,12 +89,13 @@ jobs:
           npm ci
           npm run build
 
-      - name: Deploy web app to Cloudflare Pages
+      - name: Deploy web app to Cloudflare Workers (static assets)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy web/dist --project-name=${{ vars.CF_PAGES_PROJECT }} --branch=main --commit-hash=${{ github.sha }}
+          workingDirectory: web
+          command: deploy --name ${{ vars.CF_WORKER_NAME }} --message "${{ github.sha }}"
 
       - name: Smoke test
         env:

@@ -11,6 +11,7 @@ RUN ./gradlew --no-daemon bootJar -x test \
 
 # ---- run ----
 FROM eclipse-temurin:21-jre
+LABEL org.opencontainers.image.source="https://github.com/abhishankgupta/project-udaan"
 WORKDIR /app
 RUN useradd --system --uid 1001 udaan
 COPY --from=build /src/extracted/dependencies/ ./

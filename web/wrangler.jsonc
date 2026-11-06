@@ -1,0 +1,12 @@
+// Cloudflare Workers static-assets config for the React app.
+// The pipeline overrides "name" per environment (udaan-web-test / udaan-web).
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "udaan-web",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./dist",
+    // Serve index.html for unknown paths so React Router handles deep links.
+    "not_found_handling": "single-page-application"
+  }
+}
