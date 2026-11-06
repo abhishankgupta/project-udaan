@@ -50,7 +50,7 @@ class ProblemController {
             @Size(max = 500) String estimatedImpact,
             @NotBlank @Size(min = 10, max = 500, message = "must be 10 to 500 characters") String desiredOutcome,
             @NotEmpty(message = "choose at least one kind of help") Set<AssistanceType> assistanceTypes,
-            boolean anonymous,
+            Boolean anonymous,
             @Size(max = 4, message = "add up to 4 photos") List<UUID> mediaIds) {
     }
 
@@ -60,7 +60,7 @@ class ProblemController {
         return problems.submit(UUID.fromString(jwt.getSubject()), new ProblemService.SubmitCommand(
                 r.title(), r.description(), r.categoryId(), r.cityId(), r.localityId(), r.localityText(),
                 r.addressText(), r.latitude(), r.longitude(), r.urgency(), r.peopleAffected(), r.estimatedImpact(),
-                r.desiredOutcome(), r.assistanceTypes(), r.anonymous(), r.mediaIds()));
+                r.desiredOutcome(), r.assistanceTypes(), Boolean.TRUE.equals(r.anonymous()), r.mediaIds()));
     }
 
     /** The public feed with filters, sorting and search (section 9). */

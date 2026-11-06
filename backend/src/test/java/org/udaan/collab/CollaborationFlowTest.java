@@ -168,7 +168,8 @@ class CollaborationFlowTest {
         assertThat(api.get("/api/v1/problems/" + code + "/contributions", owner).body()).doesNotContain("advice only");
 
         assertThat(api.post("/api/v1/problems/" + code + "/contributions", "{\"types\":[]}", helper).status()).isEqualTo(400);
-        assertThat(api.post("/api/v1/problems/" + code + "/contributions",
-                "{\"types\":[\"FUNDING\"],\"solutionId\":\"" + UUID.randomUUID() + "\"}", helper).status()).isEqualTo(404);
+        Response unknownSolution = api.post("/api/v1/problems/" + code + "/contributions",
+                "{\"types\":[\"FUNDING\"],\"solutionId\":\"" + UUID.randomUUID() + "\"}", helper);
+        assertThat(unknownSolution.status()).as("shareContact may be omitted: " + unknownSolution).isEqualTo(404);
     }
 }

@@ -30,7 +30,7 @@ class ContributionController {
             @NotEmpty(message = "choose at least one way to help") Set<ContributionType> types,
             @Size(max = 1000) String message,
             UUID solutionId,
-            boolean shareContact) {
+            Boolean shareContact) {
     }
 
     @GetMapping("/api/v1/problems/{ref}/contributions")
@@ -41,7 +41,7 @@ class ContributionController {
     @PostMapping("/api/v1/problems/{ref}/contributions")
     @ResponseStatus(HttpStatus.CREATED)
     ContributionView offer(@PathVariable String ref, @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody OfferRequest r) {
-        return contributions.offer(ref, viewer(jwt), r.solutionId(), r.types(), r.message(), r.shareContact());
+        return contributions.offer(ref, viewer(jwt), r.solutionId(), r.types(), r.message(), Boolean.TRUE.equals(r.shareContact()));
     }
 
     @DeleteMapping("/api/v1/contributions/{id}")
