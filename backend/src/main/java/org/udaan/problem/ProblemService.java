@@ -174,8 +174,7 @@ class ProblemService {
         java.util.Map<UUID, String> names = new java.util.HashMap<>();
         List<ProblemView.TimelineEntry> timelineEntries = updates.findByProblemIdOrderByCreatedAtAsc(p.getId()).stream()
                 .map(u -> new ProblemView.TimelineEntry(u.getType(), u.getFromStatus(), u.getToStatus(), u.getBody(),
-                        u.getAuthorId() == null ? null : names.computeIfAbsent(u.getAuthorId(),
-                                id -> identity.findUser(id).map(x -> x.displayName()).orElse("Udaan member")),
+                        timelineAuthor(p, u.getAuthorId(), owner, names),
                         u.getAuthorRole(), media.describe(u.getMediaIds()), u.getCreatedAt()))
                 .toList();
 
@@ -200,6 +199,17 @@ class ProblemService {
                 new ProblemView.Counts(p.getSupportCount(), p.getSolutionCount(), p.getCommentCount(), p.getFollowerCount()),
                 timelineEntries, owner, feed.supports(p.getId(), viewerId), feed.follows(p.getId(), viewerId),
                 permissions, resolution, p.getCreatedAt());
+    }
+
+    /** Anonymous submitters stay anonymous on the timeline too, except to themselves. */
+    private String timelineAuthor(Problem p, UUID authorId, boolean viewerIsOwner, java.util.Map<UUID, String> names) {
+        if (authorId == null) {
+            return null;
+        }
+        if (p.isAnonymous() && authorId.equals(p.getSubmitterId()) && !viewerIsOwner) {
+            return "Anonymous resident";
+        }
+        return names.computeIfAbsent(authorId, id -> identity.findUser(id).map(x -> x.displayName()).orElse("Udaan member"));
     }
 
     private ProblemSummary summary(Problem p) {
