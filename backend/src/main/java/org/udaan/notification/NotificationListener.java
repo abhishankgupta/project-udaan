@@ -87,7 +87,7 @@ class NotificationListener {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void on(ProblemUpdatePosted e) {
         safely(() -> notifications.send(problems.audience(e.problemId()), new NotificationService.Message("PROGRESS_UPDATE",
-                name(e.actorId()) + " posted an update on “" + e.title() + "”", e.body(), "/problems/" + e.publicCode(),
+                (e.actorAnonymous() ? "The person who raised it" : name(e.actorId())) + " posted an update on “" + e.title() + "”", e.body(), "/problems/" + e.publicCode(),
                 e.actorId(), e.problemId())));
     }
 

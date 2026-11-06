@@ -34,6 +34,6 @@ class ProblemTimeline {
     void progress(Problem problem, UUID actorId, String actorRole, String body, List<UUID> mediaIds) {
         updates.save(ProblemUpdate.progress(problem.getId(), actorId, actorRole, body, mediaIds));
         events.publishEvent(new ProblemUpdatePosted(problem.getId(), problem.getPublicCode(), problem.getTitle(),
-                problem.getSubmitterId(), actorId, body));
+                problem.getSubmitterId(), actorId, problem.isAnonymous() && problem.getSubmitterId().equals(actorId), body));
     }
 }

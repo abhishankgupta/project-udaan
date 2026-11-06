@@ -95,6 +95,24 @@ class LifecycleNotificationsTest {
     }
 
     @Test
+    void anonymousOwnersStayAnonymousInUpdatesAndNotifications() {
+        String owner = api.registerNewUser("Secret Owner");
+        Response r = api.post("/api/v1/problems", """
+                {"title":"Illegal dumping behind the school","description":"Trucks dump construction waste behind the school wall every night.",
+                 "categoryId":"0193f1a0-0000-7000-8000-000000000003","cityId":1,"localityText":"Chinhat",
+                 "urgency":"HIGH","desiredOutcome":"Dumping stopped and waste cleared","assistanceTypes":["GOVERNMENT_SUPPORT"],"anonymous":true}
+                """, owner);
+        String code = r.field("publicCode");
+        String follower = api.registerNewUser("Follower");
+        api.put("/api/v1/problems/" + code + "/follow", follower);
+
+        assertThat(api.post("/api/v1/problems/" + code + "/updates", "{\"body\":\"Complaint filed with the municipality.\"}", owner).status())
+                .isEqualTo(201);
+        assertThat(api.get("/api/v1/problems/" + code, follower).body()).doesNotContain("Secret Owner").contains("Anonymous resident");
+        assertThat(api.get("/api/v1/notifications", follower).body()).doesNotContain("Secret Owner").contains("The person who raised it posted an update");
+    }
+
+    @Test
     void enoughDisputesReopenAResolvedProblem() {
         String owner = api.registerNewUser("Owner");
         String code = raise(owner);
